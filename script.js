@@ -38,7 +38,9 @@ document.addEventListener(RENDER_EVENT, function (event) {
     completedBOOKList.innerHTML = '';
 
     for (const bookItem of books) {
+        // ketika searching buku 
         if (event.detail !== undefined) {
+            // tampikan hanya data yang sesuai kata kunci
             if (bookItem.bookTitle.includes(event.detail)) {
                 const bookElement = makeBook(bookItem);
 
