@@ -4,6 +4,63 @@ const RENDER_EVENT = 'render-book';
 const PRINT_SAVED_EVENT = 'saved-book';
 const STORAGE_KEY = 'BOOK_APPS';
 
+document.addEventListener('DOMContentLoaded', function () {
+    const submitBookForm = document.getElementById('inputBook');
+    const searchBookForm = document.getElementById('searchBook');
+
+    submitBookForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        addBook();
+    });
+    searchBookForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        const bookTitle = document.getElementById("searchBookTitle").value;
+
+        // trigger event and filter buku
+        document.dispatchEvent(new CustomEvent(RENDER_EVENT, { detail: bookTitle }));
+    });
+
+    if (isStorageExist()) {
+        loadDataFromStorage();
+    }
+});
+
+document.addEventListener(PRINT_SAVED_EVENT, function (event) {
+    console.log(localStorage.getItem(STORAGE_KEY));
+    console.log(event.detail);
+});
+
+document.addEventListener(RENDER_EVENT, function (event) {
+    const uncompletedBOOKList = document.getElementById('incompleteBookshelfList');
+    uncompletedBOOKList.innerHTML = '';
+
+    const completedBOOKList = document.getElementById('completeBookshelfList');
+    completedBOOKList.innerHTML = '';
+
+    for (const bookItem of books) {
+        if (event.detail !== undefined) {
+            if (bookItem.bookTitle.includes(event.detail)) {
+                const bookElement = makeBook(bookItem);
+
+                if (!bookItem.isCompleted) {
+                    uncompletedBOOKList.append(bookElement);
+                }
+                else
+                    completedBOOKList.append(bookElement);
+            }
+        }
+        else {
+            const bookElement = makeBook(bookItem);
+
+            if (!bookItem.isCompleted) {
+                uncompletedBOOKList.append(bookElement);
+            }
+            else
+                completedBOOKList.append(bookElement);
+        }
+    }
+});
+
 function isStorageExist() /* boolean */ {
     if (typeof (Storage) === undefined) {
         alert('Browser kamu tidak mendukung local storage');
@@ -24,20 +81,6 @@ function loadDataFromStorage() {
 
     document.dispatchEvent(new Event(RENDER_EVENT));
 }
-
-document.addEventListener('DOMContentLoaded', function () {
-    const submitForm = document.getElementById('inputBook');
-    submitForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-        console.log('test hello');
-
-        addBook();
-    });
-
-    if (isStorageExist()) {
-        loadDataFromStorage();
-    }
-});
 
 function addBook() {
     const bookTitle = document.getElementById('inputBookTitle').value;
@@ -78,29 +121,6 @@ function saveDataToLocal(message) {
     }
 }
 
-document.addEventListener(PRINT_SAVED_EVENT, function (event) {
-    console.log(localStorage.getItem(STORAGE_KEY));
-    console.log(event.detail);
-});
-
-document.addEventListener(RENDER_EVENT, function () {
-    const uncompletedBOOKList = document.getElementById('incompleteBookshelfList');
-    uncompletedBOOKList.innerHTML = '';
-
-    const completedBOOKList = document.getElementById('completeBookshelfList');
-    completedBOOKList.innerHTML = '';
-
-    for (const bookItem of books) {
-        const bookElement = makeBook(bookItem);
-
-        if (!bookItem.isCompleted) {
-            uncompletedBOOKList.append(bookElement);
-        }
-        else
-            completedBOOKList.append(bookElement);
-    }
-});
-
 function makeBook(bookObject) {
     const bookTitle = document.createElement('h3');
     bookTitle.innerText = bookObject.bookTitle;
@@ -132,7 +152,8 @@ function makeBook(bookObject) {
         trashButton.innerHTML = "Hapus Buku"
 
         trashButton.addEventListener('click', function () {
-            removeBook(bookObject.id);
+            if (confirm("Do you want to delete this book?"))
+                removeBook(bookObject.id);
         });
 
         buttonContainer.append(undoButton, trashButton);
@@ -150,7 +171,8 @@ function makeBook(bookObject) {
         trashButton.innerHTML = "Hapus Buku"
 
         trashButton.addEventListener('click', function () {
-            removeBook(bookObject.id);
+            if (confirm("Do you want to delete this book?"))
+                removeBook(bookObject.id);
         });
 
         buttonContainer.append(checkButton, trashButton);
@@ -168,7 +190,7 @@ function addBookToCompleted(bookId) {
     bookTarget.isCompleted = true;      // change status to complete
 
     document.dispatchEvent(new Event(RENDER_EVENT));
-    saveData('buku berhasil diselesaikan');
+    saveDataToLocal('buku berhasil diselesaikan');
 }
 
 function findBook(bookId) {
@@ -188,7 +210,7 @@ function removeBook(bookId) {
     // remove book based on id
     books.splice(bookTarget, 1);
     document.dispatchEvent(new Event(RENDER_EVENT));
-    saveData('buku berhasil dihapus');
+    saveDataToLocal('buku berhasil dihapus');
 }
 
 
@@ -199,7 +221,7 @@ function undoBookFromCompleted(bookId) {
 
     bookTarget.isCompleted = false;     // change status to complete
     document.dispatchEvent(new Event(RENDER_EVENT));
-    saveData('buku berhasil diundo');
+    saveDataToLocal('buku berhasil diundo');
 }
 
 function findBookIndex(bookId) {
@@ -210,13 +232,4 @@ function findBookIndex(bookId) {
     }
 
     return -1;
-}
-
-
-function saveData(message) {
-    if (isStorageExist()) {
-        const parsed = JSON.stringify(books);
-        localStorage.setItem(STORAGE_KEY, parsed);
-        document.dispatchEvent(new CustomEvent(PRINT_SAVED_EVENT, { detail: message }));
-    }
 }
